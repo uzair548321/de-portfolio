@@ -1,0 +1,10 @@
+version: 2
+sources:
+  - name: bronze
+    schema: bronze
+    tables:
+      - name: olist_orders
+      - name: olist_customers
+      - name: olist_order_items
+      - name: olist_order_payments
+      - name: olist_products
