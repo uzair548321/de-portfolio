@@ -2,3 +2,4 @@
 .venv/
 data/*.duckdb
 __pycache__/
+data/raw/
