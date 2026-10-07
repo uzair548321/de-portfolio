@@ -1,5 +1,10 @@
 .env
 .venv/
 data/*.duckdb
-__pycache__/
 data/raw/
+data/export/
+__pycache__/
+logs/
+dbt_project/target/
+dbt_project/logs/
+*.duckdb
