@@ -7,8 +7,9 @@ models:
       - name: customer_id
         tests:
           - relationships:
-              to: ref('dim_customers')
-              field: customer_id
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
   - name: dim_customers
     columns:
       - name: customer_id
