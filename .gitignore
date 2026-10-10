@@ -8,3 +8,4 @@ logs/
 dbt_project/target/
 dbt_project/logs/
 *.duckdb
+.venv*/
