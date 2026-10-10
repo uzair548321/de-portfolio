@@ -1,0 +1,86 @@
+# Data Engineering Portfolio: incremental pipeline with DuckDB, dbt and Power BI
+
+An end-to-end data pipeline built on free tools. It ingests a public weather API incrementally and an e-commerce dataset (Olist) in batch, models both with dbt into bronze, silver and gold layers, and serves the gold tables to a Power BI dashboard.
+
+![Dashboard](docs/dashboard.png)
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Open-Meteo API] --> B[Python ingestion<br/>watermark + upsert]
+    C[Olist CSVs] --> D[Python ingestion<br/>full refresh]
+    B --> E[(DuckDB<br/>bronze)]
+    D --> E
+    E --> F[dbt<br/>silver: clean + typed]
+    F --> G[dbt<br/>gold: dim + fact]
+    G --> H[Power BI<br/>dashboard]
+```
+
+| Layer | What it holds | Built by |
+| --- | --- | --- |
+| bronze | Raw data as loaded, plus `loaded_at` and source file | Python scripts in `ingestion/` |
+| silver | Cleaned, typed tables (orders, customers, items, payments) | dbt models in `dbt_project/models/silver` |
+| gold | `dim_customers` and `fact_orders` (one row per order) | dbt models in `dbt_project/models/gold` |
+
+## Tech stack
+
+Python, DuckDB, dbt Core (dbt-duckdb), Power BI Desktop, Git.
+
+## Data sources
+
+- **Open-Meteo archive API** (no API key): daily temperature and precipitation for three cities. Used to demonstrate incremental loading.
+- **Olist Brazilian E-Commerce dataset** (Kaggle, CSV): about 99k orders. A static dataset, loaded as a full refresh.
+
+## Key design decisions
+
+1. **Incremental load with a watermark.** `load_weather.py` stores the last loaded date in `bronze.etl_control` and fetches only newer data. A 2-day overlap window covers late-arriving data.
+2. **Idempotent loads.** Rows are upserted on a primary key (`city`, `obs_date`), so re-running the script never creates duplicates. Running it twice kept the row count unchanged at 644 per city.
+3. **Load strategy follows the source.** The API changes daily, so it uses watermark plus upsert. Olist is static, so a full refresh is simpler and safe.
+4. **Data quality checks in dbt.** `unique` and `not_null` tests on primary keys, and a `relationships` test between `fact_orders` and `dim_customers`.
+5. **Layered modelling.** Bronze stays raw, silver cleans and types, gold is shaped for reporting, so each layer has one job.
+
+## Results
+
+- `gold.fact_orders` has 99,441 rows, matching the Olist order count, so the joins did not drop or duplicate orders.
+- The dashboard shows total orders, revenue, delivered revenue, average order value, monthly orders, top 10 states by revenue and the order status split. Revenue is in BRL.
+
+## How to run
+
+```bash
+# 1. Set up
+python -m venv .venv
+.venv\Scripts\activate          # Mac/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+
+# 2. Ingest
+python ingestion/load_weather.py
+# download the Olist CSVs from Kaggle into data/raw/olist/
+python ingestion/load_olist.py
+
+# 3. Transform and test
+cd dbt_project
+dbt run --profiles-dir .
+dbt test --profiles-dir .
+cd ..
+
+# 4. Export gold tables for Power BI
+python export/export_gold.py
+```
+
+Open `docs/olist_dashboard.pbix` in Power BI Desktop and point the two CSV sources to `data/export/`.
+
+## Project structure
+
+```
+ingestion/      Python loaders (weather API, Olist CSVs)
+dbt_project/    dbt models (silver, gold), tests and profiles
+export/         Exports gold tables to CSV for Power BI
+docs/           Dashboard file and screenshot
+```
+
+## Roadmap
+
+- Streamlit chat that turns a question into SQL over the gold tables (read-only, gold schema only)
+- GitHub Actions workflow for a daily scheduled run plus dbt tests on every push
+- dbt docs and lineage screenshot
