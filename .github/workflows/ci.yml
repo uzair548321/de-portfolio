@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "30 2 * * *"   # 08:00 IST daily
+  workflow_dispatch:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install duckdb requests python-dotenv dbt-core dbt-duckdb
+
+      - name: Compile Python files
+        run: python -m compileall ingestion export
+
+      - name: Validate dbt project
+        working-directory: dbt_project
+        run: |
+          mkdir -p ../data
+          dbt parse --profiles-dir .
+
+      - name: Weather load runs twice without duplicates
+        run: |
+          mkdir -p data
+          python ci/check_weather_idempotency.py
