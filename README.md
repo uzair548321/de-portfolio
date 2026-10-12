@@ -1,4 +1,5 @@
 # Data Engineering Portfolio: incremental pipeline with DuckDB, dbt, Power BI and an LLM chat
+![CI](https://github.com/uzair548321/de-portfolio/actions/workflows/ci.yml/badge.svg)
 
 An end-to-end data pipeline built on free tools. It ingests a public weather API incrementally and an e-commerce dataset (Olist) in batch, models both with dbt into bronze, silver and gold layers, serves the gold tables to a Power BI dashboard, and lets you ask questions about them in plain English through a read-only text-to-SQL chat.
 
@@ -116,5 +117,7 @@ docs/           Dashboard file and screenshots
 
 ## Roadmap
 
-- GitHub Actions workflow for a daily scheduled run plus dbt tests on every push
+ ## CI
+
+- A GitHub Actions workflow runs on every push and daily at 08:00 IST. It compiles the Python code, validates the dbt project with `dbt parse`, and runs the weather loader twice to check that a rerun does not change the row count (idempotency).
 - dbt docs and lineage screenshot
